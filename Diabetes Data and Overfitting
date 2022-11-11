@@ -1,0 +1,169 @@
+import pandas as pd
+from sklearn import datasets, linear_model
+from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.linear_model import Lasso
+import numpy as np
+import math
+import statistics
+import matplotlib.pyplot as plt
+import random
+#initiated on code from this example:https://scikit-learn.org/stable/auto_examples/linear_model/plot_ols.html#
+
+og_df = datasets.load_diabetes(as_frame=True)
+print(list(og_df))
+
+X_diabetes, y_diabetes = datasets.load_diabetes(return_X_y=True)
+
+
+#Step 1: Linear regression in Python
+#Starting off with a single feature
+X_diabetes = X_diabetes[:, np.newaxis, 2]
+
+# train test split for X
+X_diabetes_train = X_diabetes[:-20]
+X_diabetes_test = X_diabetes[-20:]
+
+# train test split for the target
+y_diabetes_train = y_diabetes[:-20]
+y_diabetes_test = y_diabetes[-20:]
+
+# Instance of Linear Regression
+regr = linear_model.LinearRegression()
+
+# Train on train sets
+regr.fit(X_diabetes_train, y_diabetes_train)
+
+# Predict with the trained model
+y_diabetes_pred = regr.predict(X_diabetes_test)
+
+# The coefficients
+print("Coefficients: \n", regr.coef_)
+#[938.23786125]
+
+#MSE
+print("Mean squared error: %.2f" % mean_squared_error(y_diabetes_test, y_diabetes_pred))
+# 2548.07
+
+# Look at the r-squared explain power
+print("Coefficient of determination: %.2f" % r2_score(y_diabetes_test, y_diabetes_pred))
+#0.47
+
+
+# Plot outputs
+plt.scatter(X_diabetes_test, y_diabetes_test, color="black")
+plt.plot(X_diabetes_test, y_diabetes_pred, color="blue", linewidth=3)
+#this is our first model
+
+#Step 2: Variation in test data size
+#In the example, the last 20 data points are used for test. I am going to Change the code in a way
+# that I can test 5, 10, 20, 40, and 80 data points. Then I will plot a graph where x-axis is
+# number of data points used for test and y-axis is the error.
+listed = [5, 10, 20, 40, 80]
+error_list =[]
+for i in listed:
+    X_diabetes_train = X_diabetes[:-i]
+    X_diabetes_test = X_diabetes[-i:]
+    y_diabetes_train = y_diabetes[:-i]
+    y_diabetes_test = y_diabetes[-i:]
+    regr = linear_model.LinearRegression()
+    regr.fit(X_diabetes_train, y_diabetes_train)
+    y_diabetes_pred = regr.predict(X_diabetes_test)
+    error_list.append(mean_squared_error(y_diabetes_test, y_diabetes_pred))
+
+plt.scatter(listed, error_list, color="black")
+plt.show()
+# works!
+
+
+#Step 3: Regression with more features
+# Making it so the code runs on all columns.
+X_diabetes, y_diabetes = datasets.load_diabetes(return_X_y=True)
+X_diabetes = X_diabetes[:, 1:4] # a 3 column set of arrays
+
+X_diabetes_train = X_diabetes[:-20]
+X_diabetes_test = X_diabetes[-20:]
+y_diabetes_train = y_diabetes[:-20]
+y_diabetes_test = y_diabetes[-20:]
+regr2 = linear_model.LinearRegression()
+regr2.fit(X_diabetes_train, y_diabetes_train)
+y_diabetes_pred = regr2.predict(X_diabetes_test)
+print((mean_squared_error(y_diabetes_test, y_diabetes_pred)))
+print('coefficients', regr2.coef_)
+# this error is only a slight improvement from the single variable:
+#2510.2050886449288 compared to 2548.07
+
+
+#Step 4: Polynomial Regression
+# make it so the third column is utilized for x + x^2:
+X_diabetes, y_diabetes = datasets.load_diabetes(return_X_y=True)
+X_diabetes_poly = pd.DataFrame(X_diabetes[:, 2])
+train_error_list = []
+test_error_list = []
+for i in range(0, 10):
+    print(i)
+    add_on = list(X_diabetes_poly[0] * X_diabetes_poly[i])
+    X_diabetes_poly[i+1] = add_on
+    #x_diabetes_train2 = np.array(x_diabetes_train2)
+    #x_diabetes_train2 = x_diabetes_train2.transpose() # does this transpose look right?
+    X_diabetes_train = X_diabetes_poly[:][:-20]
+    X_diabetes_test = X_diabetes_poly[:][-20:]
+    y_diabetes_train = y_diabetes[:][:-20]
+    y_diabetes_test = y_diabetes[:][-20:]
+    regr3 = linear_model.LinearRegression()
+    regr3.fit(X_diabetes_train, y_diabetes_train)
+    train_pred = regr3.predict(X_diabetes_train)
+    train_error = mean_squared_error(y_diabetes_train, train_pred)
+
+    test_pred = regr3.predict(X_diabetes_test)
+    test_error =mean_squared_error(y_diabetes_test, test_pred)
+    print('coefficients', regr3.coef_)
+    train_error_list.append(train_error)
+    test_error_list.append(test_error)
+#2540.660325246782
+#coefficients [935.32292342  99.66616842]
+
+print(train_error_list)
+print(test_error_list)
+
+x_plt = [i for i in range(1,11)]
+plt.plot(x_plt, test_error_list, c='r')
+plt.plot(x_plt, train_error_list, c='g')
+plt.show()
+
+#USING LASSO AS A COMPARISON MODEL:
+
+X_diabetes, y_diabetes = datasets.load_diabetes(return_X_y=True)
+X_diabetes_poly = pd.DataFrame(X_diabetes[:, 2])
+train_error_list = []
+test_error_list = []
+for i in range(0, 10):
+    print(i)
+    add_on = list(X_diabetes_poly[0] * X_diabetes_poly[i])
+    X_diabetes_poly[i+1] = add_on
+    #x_diabetes_train2 = np.array(x_diabetes_train2)
+    #x_diabetes_train2 = x_diabetes_train2.transpose() # does this transpose look right?
+    X_diabetes_train = X_diabetes_poly[:][:-20]
+    X_diabetes_test = X_diabetes_poly[:][-20:]
+    y_diabetes_train = y_diabetes[:][:-20]
+    y_diabetes_test = y_diabetes[:][-20:]
+    regr_lasso = Lasso(alpha=0.1)
+    regr_lasso.fit(X_diabetes_train, y_diabetes_train)
+    train_pred = regr_lasso.predict(X_diabetes_train)
+    train_error = mean_squared_error(y_diabetes_train, train_pred)
+
+    test_pred = regr_lasso.predict(X_diabetes_test)
+    test_error =mean_squared_error(y_diabetes_test, test_pred)
+    print('coefficients', regr_lasso.coef_)
+    train_error_list.append(train_error)
+    test_error_list.append(test_error)
+#2540.660325246782
+#coefficients [935.32292342  99.66616842]
+
+print(train_error_list)
+print(test_error_list)
+
+
+x_plt = [i for i in range(1,11)]
+plt.plot(x_plt, test_error_list, c='b')
+plt.plot(x_plt, train_error_list, c='y')
+plt.show()
